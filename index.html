@@ -9,7 +9,8 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <title>StudyFlow</title>
   <link rel="manifest" href="manifest.json" />
-  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="apple-touch-icon" href="icon-192.png" />
+  <meta name="apple-mobile-web-app-title" content="StudyFlow" />
   <style>
     :root {
       --bg: #0a0a1a;
@@ -53,6 +54,14 @@
       padding: 0;
     }
 
+    /* Offline base reset (replaces the Tailwind CDN preflight so the look stays identical) */
+    *, ::before, ::after { border-width: 0; border-style: solid; }
+    html { line-height: 1.5; -webkit-text-size-adjust: 100%; }
+    h1, h2, h3, h4, h5, h6 { font-size: inherit; font-weight: inherit; }
+    button { font-family: inherit; font-size: 100%; line-height: inherit; color: inherit; background-color: transparent; background-image: none; -webkit-appearance: button; cursor: pointer; touch-action: manipulation; }
+    img, svg, video, canvas { display: block; vertical-align: middle; }
+    body { overscroll-behavior: none; }
+
     html, body {
       height: 100%;
       overflow: hidden;
@@ -85,7 +94,7 @@
     .screen {
       display: none;
       min-height: 100%;
-      padding: 12px 16px 20px;
+      padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 20px;
     }
     .screen.active {
       display: block;
@@ -857,6 +866,13 @@
           }
         }, 1000);
       }
+    }
+
+    // Offline cache (web / iPhone "Add to Home Screen"; harmless inside the Android app)
+    if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(() => {});
+      });
     }
 
     // Init
