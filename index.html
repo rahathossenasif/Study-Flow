@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f0c29" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <title>StudyFlow</title>
+  <link rel="manifest" href="manifest.json" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    :root {
+      --bg: #0a0a1a;
+      --bg-card: rgba(255,255,255,0.05);
+      --text: #f8fafc;
+      --text-secondary: #94a3b8;
+      --accent: #8b5cf6;
+      --accent-2: #6366f1;
+      --border: rgba(255,255,255,0.08);
+      --nav-bg: rgba(15, 12, 41, 0.95);
+      --success: #34d399;
+      --warning: #fbbf24;
+    }
+
+    [data-theme="light"] {
+      --bg: #f1f5f9;
+      --bg-card: #ffffff;
+      --text: #0f172a;
+      --text-secondary: #64748b;
+      --accent: #7c3aed;
+      --accent-2: #4f46e5;
+      --border: rgba(0,0,0,0.08);
+      --nav-bg: rgba(255,255,255,0.95);
+    }
+
+    [data-theme="premium"] {
+      --bg: #09090b;
+      --bg-card: rgba(139,92,246,0.08);
+      --text: #fafafa;
+      --text-secondary: #a1a1aa;
+      --accent: #a78bfa;
+      --accent-2: #c084fc;
+      --border: rgba(167,139,250,0.15);
+      --nav-bg: rgba(9,9,11,0.96);
+    }
+
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      transition: background 0.3s ease, color 0.3s ease;
+    }
+
+    .app {
+      max-width: 430px;
+      margin: 0 auto;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg);
+      position: relative;
+      overflow: hidden;
+    }
+
+    /* Content area that scrolls */
+    .content {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 90px; /* space for bottom nav */
+    }
+
+    .screen {
+      display: none;
+      min-height: 100%;
+      padding: 12px 16px 20px;
+    }
+    .screen.active {
+      display: block;
+      animation: fadeIn 0.22s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      transition: transform 0.12s ease;
+    }
+    .card:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: white;
+      border: none;
+      border-radius: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.12s ease;
+      box-shadow: 0 8px 20px -6px color-mix(in srgb, var(--accent) 45%, transparent);
+    }
+    .btn-primary:active {
+      transform: scale(0.97);
+    }
+
+    /* Bottom Navigation - fixed properly */
+    .bottom-nav {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 72px;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      background: var(--nav-bg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border-top: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-around;
+      z-index: 50;
+    }
+    .bottom-nav.hidden {
+      display: none;
+    }
+
+    .nav-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2px;
+      padding: 6px 10px;
+      border-radius: 12px;
+      color: var(--text-secondary);
+      font-size: 10px;
+      font-weight: 500;
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      transition: color 0.2s, background 0.2s;
+      min-width: 56px;
+    }
+    .nav-item.active {
+      color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+    }
+    .nav-item span.icon {
+      font-size: 18px;
+      line-height: 1;
+    }
+
+    /* Timer specific fixes */
+    .timer-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      flex: 1;
+      min-height: 320px;
+      padding: 10px 0 20px;
+    }
+
+    .timer-circle {
+      position: relative;
+      width: 240px;
+      height: 240px;
+      margin-bottom: 28px;
+    }
+
+    .timer-btn {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: none;
+      color: white;
+      font-size: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 10px 28px -6px color-mix(in srgb, var(--accent) 50%, transparent);
+      transition: transform 0.15s ease;
+    }
+    .timer-btn:active {
+      transform: scale(0.94);
+    }
+
+    /* Settings */
+    .settings-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,0.55);
+      z-index: 100;
+      display: none;
+      align-items: flex-end;
+      justify-content: center;
+    }
+    .settings-overlay.open {
+      display: flex;
+    }
+    .settings-sheet {
+      width: 100%;
+      background: var(--bg);
+      border-radius: 24px 24px 0 0;
+      padding: 20px 20px calc(20px + env(safe-area-inset-bottom));
+      max-height: 80%;
+      overflow-y: auto;
+      animation: slideUp 0.28s ease;
+    }
+    @keyframes slideUp {
+      from { transform: translateY(100%); }
+      to { transform: translateY(0); }
+    }
+
+    .option-btn {
+      border: 2px solid var(--border);
+      border-radius: 14px;
+      padding: 12px 8px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      background: var(--bg-card);
+    }
+    .option-btn.active {
+      border-color: var(--accent);
+      background: color-mix(in srgb, var(--accent) 12%, transparent);
+    }
+
+    /* Hide scrollbar */
+    .content::-webkit-scrollbar { width: 0; height: 0; }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+
+    <!-- SCROLLABLE CONTENT -->
+    <div class="content" id="content">
+
+      <!-- WELCOME -->
+      <div id="welcome" class="screen active" style="padding-top: 40px;">
+        <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:80vh;">
+          <div style="width:80px;height:80px;border-radius:20px;display:flex;align-items:center;justify-content:center;margin-bottom:24px;background:linear-gradient(135deg,var(--accent),var(--accent-2));box-shadow:0 12px 32px -8px color-mix(in srgb,var(--accent) 50%,transparent);">
+            <svg width="44" height="44" viewBox="0 0 24 24" fill="white">
+              <path d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"/>
+            </svg>
+          </div>
+
+          <h1 style="font-size:34px;font-weight:700;margin-bottom:8px;background:linear-gradient(135deg,var(--accent),#ec4899);-webkit-background-clip:text;-webkit-text-fill-color:transparent;">StudyFlow</h1>
+          <p style="font-size:13px;color:var(--text-secondary);margin-bottom:40px;letter-spacing:0.5px;" data-i18n="tagline">Plan • Focus • Learn • Grow</p>
+
+          <div style="width:100%;max-width:280px;margin-bottom:36px;">
+            <div style="aspect-ratio:4/5;border-radius:24px;border:1px solid var(--border);display:flex;align-items:flex-end;justify-content:center;background:color-mix(in srgb,var(--accent) 10%,transparent);">
+              <div style="text-align:center;padding-bottom:36px;">
+                <div style="font-size:56px;margin-bottom:12px;">📚</div>
+                <p style="font-weight:500;font-size:17px;" data-i18n="ultimate">Your Ultimate</p>
+                <p style="font-size:17px;color:var(--accent);" data-i18n="companion">Study Companion</p>
+              </div>
+            </div>
+          </div>
+
+          <button onclick="showScreen('home')" class="btn-primary" style="width:100%;max-width:280px;padding:16px;font-size:17px;">
+            <span data-i18n="getStarted">Get Started</span> →
+          </button>
+          <button style="margin-top:16px;background:none;border:none;color:var(--text-secondary);font-size:14px;cursor:pointer;" data-i18n="signIn">Sign In</button>
+        </div>
+      </div>
+
+      <!-- HOME -->
+      <div id="home" class="screen">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <button onclick="openSettings()" class="card" style="padding:10px;border:none;cursor:pointer;">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+          <button class="card" style="padding:10px;border:none;position:relative;cursor:pointer;">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg>
+            <span style="position:absolute;top:8px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--accent);"></span>
+          </button>
+        </div>
+
+        <div style="margin-bottom:20px;">
+          <h2 style="font-size:24px;font-weight:700;" data-i18n="hello">Hello, Learner 👋</h2>
+          <p style="font-size:13px;color:var(--text-secondary);margin-top:4px;" data-i18n="keepGoing">Keep going! You're doing great.</p>
+        </div>
+
+        <!-- Week days -->
+        <div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:20px;padding-bottom:4px;">
+          <div class="card" style="min-width:46px;padding:8px 0;text-align:center;font-size:11px;color:var(--text-secondary);">Mon<br><b style="font-size:13px;">17</b></div>
+          <div class="card" style="min-width:46px;padding:8px 0;text-align:center;font-size:11px;color:var(--text-secondary);">Tue<br><b style="font-size:13px;">18</b></div>
+          <div style="min-width:46px;padding:8px 0;text-align:center;font-size:11px;color:white;background:var(--accent);border-radius:12px;">Wed<br><b style="font-size:13px;">19</b></div>
+          <div class="card" style="min-width:46px;padding:8px 0;text-align:center;font-size:11px;color:var(--text-secondary);">Thu<br><b style="font-size:13px;">20</b></div>
+          <div class="card" style="min-width:46px;padding:8px 0;text-align:center;font-size:11px;color:var(--text-secondary);">Fri<br><b style="font-size:13px;">21</b></div>
+          <div class="card" style="min-width:46px;padding:8px 0;text-align:center;font-size:11px;color:var(--text-secondary);">Sat<br><b style="font-size:13px;">22</b></div>
+          <div class="card" style="min-width:46px;padding:8px 0;text-align:center;font-size:11px;color:var(--text-secondary);">Sun<br><b style="font-size:13px;">23</b></div>
+        </div>
+
+        <!-- Stats -->
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px;">
+          <div class="card" style="padding:12px;">
+            <div style="width:40px;height:40px;border-radius:50%;border:3px solid var(--accent);border-top-color:transparent;display:flex;align-items:center;justify-content:center;margin-bottom:8px;">
+              <span style="font-size:11px;font-weight:700;color:var(--accent);">78%</span>
+            </div>
+            <p style="font-size:10px;color:var(--text-secondary);" data-i18n="overall">Overall</p>
+            <p style="font-size:12px;font-weight:500;" data-i18n="progress">Progress</p>
+          </div>
+          <div class="card" style="padding:12px;">
+            <div style="font-size:20px;margin-bottom:8px;">⏱</div>
+            <p style="font-size:10px;color:var(--text-secondary);" data-i18n="thisWeek">This Week</p>
+            <p style="font-size:14px;font-weight:700;">6.5h</p>
+          </div>
+          <div class="card" style="padding:12px;">
+            <div style="font-size:20px;margin-bottom:8px;">🔥</div>
+            <p style="font-size:10px;color:var(--text-secondary);" data-i18n="dayStreak">Day Streak</p>
+            <p style="font-size:14px;font-weight:700;">12</p>
+          </div>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h3 style="font-weight:600;" data-i18n="activeSubjects">Active Subjects</h3>
+          <button style="font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;" data-i18n="seeAll">See all →</button>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+          <div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;">
+            <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#8b5cf6,#6366f1);display:flex;align-items:center;justify-content:center;font-size:18px;">📐</div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <span style="font-size:13px;font-weight:500;" data-i18n="math">Mathematics</span>
+                <span style="font-size:11px;color:var(--text-secondary);">78%</span>
+              </div>
+              <div style="height:6px;background:var(--border);border-radius:99px;overflow:hidden;">
+                <div style="height:100%;width:78%;background:linear-gradient(90deg,#8b5cf6,#6366f1);border-radius:99px;"></div>
+              </div>
+              <p style="font-size:10px;color:var(--text-secondary);margin-top:4px;">3.5h / 5h</p>
+            </div>
+            <button style="width:32px;height:32px;border-radius:50%;background:color-mix(in srgb,var(--accent) 25%,transparent);color:var(--accent);border:none;font-size:12px;cursor:pointer;">▶</button>
+          </div>
+
+          <div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;">
+            <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#3b82f6,#06b6d4);display:flex;align-items:center;justify-content:center;font-size:18px;">⚗️</div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <span style="font-size:13px;font-weight:500;" data-i18n="physics">Physics</span>
+                <span style="font-size:11px;color:var(--text-secondary);">60%</span>
+              </div>
+              <div style="height:6px;background:var(--border);border-radius:99px;overflow:hidden;">
+                <div style="height:100%;width:60%;background:linear-gradient(90deg,#3b82f6,#06b6d4);border-radius:99px;"></div>
+              </div>
+              <p style="font-size:10px;color:var(--text-secondary);margin-top:4px;">3h / 5h</p>
+            </div>
+            <button style="width:32px;height:32px;border-radius:50%;background:color-mix(in srgb,var(--accent) 25%,transparent);color:var(--accent);border:none;font-size:12px;cursor:pointer;">▶</button>
+          </div>
+
+          <div class="card" style="padding:14px;display:flex;align-items:center;gap:12px;">
+            <div style="width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#10b981,#14b8a6);display:flex;align-items:center;justify-content:center;font-size:18px;">💻</div>
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
+                <span style="font-size:13px;font-weight:500;" data-i18n="cs">Computer Science</span>
+                <span style="font-size:11px;color:var(--text-secondary);">90%</span>
+              </div>
+              <div style="height:6px;background:var(--border);border-radius:99px;overflow:hidden;">
+                <div style="height:100%;width:90%;background:linear-gradient(90deg,#10b981,#14b8a6);border-radius:99px;"></div>
+              </div>
+              <p style="font-size:10px;color:var(--text-secondary);margin-top:4px;">4.5h / 5h</p>
+            </div>
+            <button style="width:32px;height:32px;border-radius:50%;background:color-mix(in srgb,var(--accent) 25%,transparent);color:var(--accent);border:none;font-size:12px;cursor:pointer;">▶</button>
+          </div>
+        </div>
+
+        <button onclick="showScreen('timer')" class="btn-primary" style="width:100%;padding:16px;font-size:15px;">
+          ⏱ <span data-i18n="quickTimer">Quick Start Timer</span>
+        </button>
+      </div>
+
+      <!-- SYLLABUS -->
+      <div id="syllabus" class="screen">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+          <button onclick="showScreen('home')" class="card" style="padding:10px;border:none;cursor:pointer;">←</button>
+          <h2 style="font-size:20px;font-weight:700;flex:1;" data-i18n="syllabus">Syllabus</h2>
+          <button class="card" style="padding:10px;border:none;cursor:pointer;">🔍</button>
+        </div>
+
+        <div class="card" style="padding:16px;margin-bottom:20px;background:color-mix(in srgb,var(--accent) 12%,transparent);border-color:color-mix(in srgb,var(--accent) 30%,transparent);">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:48px;height:48px;border-radius:12px;background:color-mix(in srgb,var(--accent) 25%,transparent);display:flex;align-items:center;justify-content:center;font-size:22px;">📖</div>
+            <div style="flex:1;">
+              <h3 style="font-weight:600;" data-i18n="math">Mathematics</h3>
+              <p style="font-size:12px;color:var(--accent);">78% <span data-i18n="complete">Complete</span></p>
+            </div>
+            <div style="width:48px;height:48px;border-radius:50%;border:3px solid var(--accent);border-top-color:transparent;display:flex;align-items:center;justify-content:center;">
+              <span style="font-size:12px;font-weight:700;">78%</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <div class="card" style="padding:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="color:var(--success);">✓</span>
+                <span style="font-size:13px;font-weight:500;">Chapter 1: Algebra</span>
+              </div>
+              <span style="font-size:11px;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--success) 15%,transparent);color:var(--success);">100%</span>
+            </div>
+            <div style="margin-left:24px;font-size:12px;color:var(--text-secondary);display:flex;flex-direction:column;gap:4px;">
+              <div>✓ Triangles</div>
+              <div>○ Coordinate Geometry</div>
+              <div>○ Vector</div>
+            </div>
+          </div>
+          <div class="card" style="padding:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="color:var(--text-secondary);">○</span>
+                <span style="font-size:13px;font-weight:500;">Chapter 2: Geometry</span>
+              </div>
+              <span style="font-size:11px;padding:2px 8px;border-radius:99px;background:color-mix(in srgb,var(--warning) 15%,transparent);color:var(--warning);">60%</span>
+            </div>
+          </div>
+          <div class="card" style="padding:14px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="color:var(--text-secondary);">○</span>
+                <span style="font-size:13px;font-weight:500;">Chapter 3: Calculus</span>
+              </div>
+              <span style="font-size:11px;padding:2px 8px;border-radius:99px;background:var(--border);color:var(--text-secondary);">0%</span>
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-primary" style="width:100%;padding:14px;margin-top:20px;">+ <span data-i18n="addChapter">Add Chapter</span></button>
+
+        <div class="card" style="padding:14px;margin-top:16px;display:flex;gap:12px;background:color-mix(in srgb,var(--warning) 8%,transparent);border-color:color-mix(in srgb,var(--warning) 25%,transparent);">
+          <div style="font-size:20px;">💡</div>
+          <div>
+            <p style="font-size:12px;font-weight:500;color:var(--warning);" data-i18n="proTip">Pro Tip</p>
+            <p style="font-size:12px;color:var(--text-secondary);margin-top:2px;" data-i18n="proTipText">Break big topics into smaller tasks for better focus!</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- TIMER (fixed layout) -->
+      <div id="timer" class="screen" style="display:none; flex-direction:column; height:100%;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+          <button onclick="showScreen('home')" class="card" style="padding:10px;border:none;cursor:pointer;">←</button>
+          <h2 style="font-size:20px;font-weight:700;" data-i18n="focusTimer">Focus Timer</h2>
+          <button class="card" style="padding:10px;border:none;cursor:pointer;">⚙</button>
+        </div>
+
+        <div style="display:flex;justify-content:center;margin-bottom:12px;">
+          <div class="card" style="padding:6px 16px;font-size:13px;color:var(--accent);">Pomodoro ▼</div>
+        </div>
+
+        <!-- Centered timer area -->
+        <div class="timer-wrapper">
+          <div class="timer-circle">
+            <svg width="240" height="240" viewBox="0 0 100 100" style="transform:rotate(-90deg);">
+              <circle cx="50" cy="50" r="42" fill="none" stroke="var(--border)" stroke-width="5.5"></circle>
+              <circle id="timerRing" cx="50" cy="50" r="42" fill="none" stroke="var(--accent)" stroke-width="5.5" stroke-dasharray="264" stroke-dashoffset="66" stroke-linecap="round"></circle>
+            </svg>
+            <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;">
+              <span id="timerDisplay" style="font-size:48px;font-weight:700;letter-spacing:-1px;">25:00</span>
+              <span style="font-size:13px;color:var(--accent);margin-top:4px;" data-i18n="focusTime">Focus Time</span>
+            </div>
+          </div>
+
+          <button id="timerBtn" onclick="toggleTimer()" class="timer-btn">▶</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px;">
+          <div class="card" style="padding:12px;text-align:center;">
+            <div style="margin-bottom:4px;">⏱</div>
+            <p style="font-size:10px;color:var(--text-secondary);" data-i18n="spentToday">Spent Today</p>
+            <p style="font-size:13px;font-weight:600;">2h 15m</p>
+          </div>
+          <div class="card" style="padding:12px;text-align:center;">
+            <div style="margin-bottom:4px;">🏆</div>
+            <p style="font-size:10px;color:var(--text-secondary);" data-i18n="milestones">Milestones</p>
+            <p style="font-size:13px;font-weight:600;">20 / 73</p>
+          </div>
+          <div class="card" style="padding:12px;text-align:center;">
+            <div style="margin-bottom:4px;">🎯</div>
+            <p style="font-size:10px;color:var(--text-secondary);" data-i18n="total">Total</p>
+            <p style="font-size:13px;font-weight:600;">48h 30m</p>
+          </div>
+        </div>
+
+        <div style="margin-bottom:16px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+            <h3 style="font-size:13px;font-weight:500;" data-i18n="focusSounds">Focus Sounds</h3>
+            <span>🔊</span>
+          </div>
+          <div style="display:flex;gap:8px;overflow-x:auto;">
+            <div style="min-width:68px;padding:10px 0;text-align:center;font-size:12px;border-radius:12px;border:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 15%,transparent);color:var(--accent);">Rain</div>
+            <div class="card" style="min-width:68px;padding:10px 0;text-align:center;font-size:12px;color:var(--text-secondary);">Lo-Fi</div>
+            <div class="card" style="min-width:68px;padding:10px 0;text-align:center;font-size:12px;color:var(--text-secondary);">Cafe</div>
+            <div class="card" style="min-width:68px;padding:10px 0;text-align:center;font-size:12px;color:var(--text-secondary);">Forest</div>
+          </div>
+        </div>
+
+        <button class="btn-primary" style="width:100%;padding:16px;" data-i18n="startSession">Start Focus Session</button>
+      </div>
+
+      <!-- NOTES -->
+      <div id="notes" class="screen">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <button onclick="openSettings()" class="card" style="padding:10px;border:none;cursor:pointer;">☰</button>
+          <h2 style="font-size:20px;font-weight:700;" data-i18n="myNotes">My Notes</h2>
+          <div style="display:flex;gap:8px;">
+            <button class="card" style="padding:10px;border:none;cursor:pointer;">🔍</button>
+            <button class="card" style="padding:10px;border:none;cursor:pointer;">⋯</button>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;overflow-x:auto;margin-bottom:16px;">
+          <button style="padding:6px 16px;border-radius:99px;font-size:12px;font-weight:500;background:var(--accent);color:white;border:none;" data-i18n="all">All</button>
+          <button class="card" style="padding:6px 16px;border-radius:99px;font-size:12px;color:var(--text-secondary);border:none;">Math</button>
+          <button class="card" style="padding:6px 16px;border-radius:99px;font-size:12px;color:var(--text-secondary);border:none;">Physics</button>
+          <button class="card" style="padding:6px 16px;border-radius:99px;font-size:12px;color:var(--text-secondary);border:none;">Research</button>
+        </div>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div class="card" style="padding:14px;min-height:120px;display:flex;flex-direction:column;background:color-mix(in srgb,#f59e0b 12%,transparent);border-color:color-mix(in srgb,#f59e0b 25%,transparent);">
+            <div style="font-size:22px;margin-bottom:8px;">∫</div>
+            <h3 style="font-size:13px;font-weight:500;flex:1;">Calculus Formulas</h3>
+            <p style="font-size:10px;color:var(--text-secondary);margin-top:8px;">Nov 20</p>
+          </div>
+          <div class="card" style="padding:14px;min-height:120px;display:flex;flex-direction:column;background:color-mix(in srgb,#3b82f6 12%,transparent);border-color:color-mix(in srgb,#3b82f6 25%,transparent);">
+            <div style="font-size:22px;margin-bottom:8px;">💡</div>
+            <h3 style="font-size:13px;font-weight:500;flex:1;">Research Ideas</h3>
+            <p style="font-size:10px;color:var(--text-secondary);margin-top:8px;">Nov 19</p>
+          </div>
+          <div class="card" style="padding:14px;min-height:120px;display:flex;flex-direction:column;background:color-mix(in srgb,#10b981 12%,transparent);border-color:color-mix(in srgb,#10b981 25%,transparent);">
+            <div style="font-size:22px;margin-bottom:8px;">✓</div>
+            <h3 style="font-size:13px;font-weight:500;flex:1;">Study Tips</h3>
+            <p style="font-size:10px;color:var(--text-secondary);margin-top:8px;">Nov 17</p>
+          </div>
+          <div class="card" style="padding:14px;min-height:120px;display:flex;flex-direction:column;background:color-mix(in srgb,var(--accent) 12%,transparent);border-color:color-mix(in srgb,var(--accent) 25%,transparent);">
+            <div style="font-size:22px;margin-bottom:8px;">🌌</div>
+            <h3 style="font-size:13px;font-weight:500;flex:1;">Quantum Theory</h3>
+            <p style="font-size:10px;color:var(--text-secondary);margin-top:8px;">Nov 18</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- CIRCLE -->
+      <div id="circle" class="screen">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+          <button onclick="openSettings()" class="card" style="padding:10px;border:none;cursor:pointer;">☰</button>
+          <h2 style="font-size:20px;font-weight:700;" data-i18n="studyCircle">Study Circle</h2>
+          <button style="padding:10px;border-radius:12px;background:var(--accent);color:white;border:none;cursor:pointer;">+</button>
+        </div>
+
+        <div style="border-radius:16px;padding:16px;margin-bottom:20px;display:flex;align-items:center;gap:12px;color:white;background:linear-gradient(135deg,var(--accent),var(--accent-2));">
+          <div style="width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;">👥</div>
+          <div style="flex:1;">
+            <p style="font-weight:600;font-size:14px;" data-i18n="studyTogether">Study Together</p>
+            <p style="font-size:12px;opacity:0.85;" data-i18n="beProductive">Be more productive with friends!</p>
+          </div>
+          <span>→</span>
+        </div>
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+          <h3 style="font-size:14px;font-weight:600;" data-i18n="friendsActivity">Friends Activity</h3>
+          <button style="font-size:12px;color:var(--accent);background:none;border:none;cursor:pointer;" data-i18n="seeAll">See all</button>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
+          <div class="card" style="padding:12px;display:flex;align-items:center;gap:12px;">
+            <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white;">R</div>
+            <div style="flex:1;">
+              <p style="font-size:13px;font-weight:500;">Rifat</p>
+              <p style="font-size:10px;color:var(--text-secondary);">Mathematics • 1h ago</p>
+            </div>
+            <span style="font-size:10px;padding:4px 8px;border-radius:99px;background:color-mix(in srgb,var(--success) 15%,transparent);color:var(--success);" data-i18n="studying">Studying</span>
+          </div>
+          <div class="card" style="padding:12px;display:flex;align-items:center;gap:12px;">
+            <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white;">N</div>
+            <div style="flex:1;">
+              <p style="font-size:13px;font-weight:500;">Nusrat Jahan</p>
+              <p style="font-size:10px;color:var(--text-secondary);">Research Paper • 2h ago</p>
+            </div>
+            <span style="font-size:10px;padding:4px 8px;border-radius:99px;background:color-mix(in srgb,var(--success) 15%,transparent);color:var(--success);" data-i18n="studying">Studying</span>
+          </div>
+          <div class="card" style="padding:12px;display:flex;align-items:center;gap:12px;">
+            <div style="width:40px;height:40px;border-radius:50%;background:linear-gradient(135deg,var(--accent),var(--accent-2));display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:white;">T</div>
+            <div style="flex:1;">
+              <p style="font-size:13px;font-weight:500;">Tamim Ahmed</p>
+              <p style="font-size:10px;color:var(--text-secondary);">Physics • 3h ago</p>
+            </div>
+            <span style="font-size:10px;padding:4px 8px;border-radius:99px;background:color-mix(in srgb,var(--warning) 15%,transparent);color:var(--warning);" data-i18n="onBreak">On Break</span>
+          </div>
+        </div>
+
+        <div class="card" style="padding:14px;margin-bottom:16px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+            <span>🎯</span>
+            <h3 style="font-size:13px;font-weight:500;" data-i18n="groupGoals">Group Goals</h3>
+          </div>
+          <p style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;" data-i18n="complete50">Complete 50h this month</p>
+          <div style="height:8px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:4px;">
+            <div style="height:100%;width:64%;background:linear-gradient(90deg,var(--accent),#ec4899);border-radius:99px;"></div>
+          </div>
+          <p style="font-size:10px;text-align:right;color:var(--text-secondary);">32 / 50h</p>
+        </div>
+
+        <button class="btn-primary" style="width:100%;padding:14px;">💬 <span data-i18n="chatRoom">Chat Room</span></button>
+      </div>
+
+    </div><!-- end content -->
+
+    <!-- BOTTOM NAV -->
+    <div id="bottomNav" class="bottom-nav hidden">
+      <button onclick="showScreen('home')" class="nav-item" data-screen="home">
+        <span class="icon">🏠</span>
+        <span data-i18n="navHome">Home</span>
+      </button>
+      <button onclick="showScreen('syllabus')" class="nav-item" data-screen="syllabus">
+        <span class="icon">📖</span>
+        <span data-i18n="navSyllabus">Syllabus</span>
+      </button>
+      <button onclick="showScreen('timer')" class="nav-item" data-screen="timer">
+        <span class="icon">⏱</span>
+        <span data-i18n="navTimer">Timer</span>
+      </button>
+      <button onclick="showScreen('notes')" class="nav-item" data-screen="notes">
+        <span class="icon">📝</span>
+        <span data-i18n="navNotes">Notes</span>
+      </button>
+      <button onclick="showScreen('circle')" class="nav-item" data-screen="circle">
+        <span class="icon">👥</span>
+        <span data-i18n="navCircle">Circle</span>
+      </button>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="settingsPanel" class="settings-overlay" onclick="if(event.target===this) closeSettings()">
+      <div class="settings-sheet">
+        <div style="width:40px;height:4px;border-radius:99px;background:rgba(128,128,128,0.4);margin:0 auto 20px;"></div>
+        <h2 style="font-size:20px;font-weight:700;margin-bottom:24px;" data-i18n="settings">Settings</h2>
+
+        <div style="margin-bottom:24px;">
+          <h3 style="font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:12px;" data-i18n="theme">Theme</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="option-btn" data-theme="dark" onclick="setTheme('dark')">
+              <div style="height:36px;border-radius:8px;background:#0a0a1a;border:1px solid #333;margin-bottom:8px;"></div>
+              <span style="font-size:12px;font-weight:500;" data-i18n="themeDark">Dark</span>
+            </div>
+            <div class="option-btn" data-theme="light" onclick="setTheme('light')">
+              <div style="height:36px;border-radius:8px;background:#f1f5f9;border:1px solid #ddd;margin-bottom:8px;"></div>
+              <span style="font-size:12px;font-weight:500;" data-i18n="themeLight">Light</span>
+            </div>
+            <div class="option-btn" data-theme="premium" onclick="setTheme('premium')">
+              <div style="height:36px;border-radius:8px;background:linear-gradient(135deg,#09090b,#1e1b4b);border:1px solid #7c3aed;margin-bottom:8px;"></div>
+              <span style="font-size:12px;font-weight:500;" data-i18n="themePremium">Premium Dark</span>
+            </div>
+            <div class="option-btn" data-theme="system" onclick="setTheme('system')">
+              <div style="height:36px;border-radius:8px;display:flex;overflow:hidden;border:1px solid #555;margin-bottom:8px;">
+                <div style="width:50%;background:#0a0a1a;"></div>
+                <div style="width:50%;background:#f1f5f9;"></div>
+              </div>
+              <span style="font-size:12px;font-weight:500;" data-i18n="themeSystem">System</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-bottom:24px;">
+          <h3 style="font-size:13px;font-weight:500;color:var(--text-secondary);margin-bottom:12px;" data-i18n="language">Language</h3>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+            <div class="option-btn" data-lang="en" onclick="setLanguage('en')">
+              <span style="font-size:20px;display:block;margin-bottom:4px;">🇬🇧</span>
+              <span style="font-size:12px;font-weight:500;">English</span>
+            </div>
+            <div class="option-btn" data-lang="bn" onclick="setLanguage('bn')">
+              <span style="font-size:20px;display:block;margin-bottom:4px;">🇧🇩</span>
+              <span style="font-size:12px;font-weight:500;">বাংলা</span>
+            </div>
+          </div>
+        </div>
+
+        <button onclick="closeSettings()" class="btn-primary" style="width:100%;padding:14px;" data-i18n="done">Done</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    const translations = {
+      en: {
+        tagline: "Plan • Focus • Learn • Grow",
+        ultimate: "Your Ultimate", companion: "Study Companion",
+        getStarted: "Get Started", signIn: "Sign In",
+        hello: "Hello, Learner 👋", keepGoing: "Keep going! You're doing great.",
+        overall: "Overall", progress: "Progress", thisWeek: "This Week", dayStreak: "Day Streak",
+        activeSubjects: "Active Subjects", seeAll: "See all →",
+        math: "Mathematics", physics: "Physics", cs: "Computer Science",
+        quickTimer: "Quick Start Timer", syllabus: "Syllabus", complete: "Complete",
+        addChapter: "Add Chapter", proTip: "Pro Tip",
+        proTipText: "Break big topics into smaller tasks for better focus!",
+        focusTimer: "Focus Timer", focusTime: "Focus Time",
+        spentToday: "Spent Today", milestones: "Milestones", total: "Total",
+        focusSounds: "Focus Sounds", startSession: "Start Focus Session",
+        myNotes: "My Notes", all: "All",
+        studyCircle: "Study Circle", studyTogether: "Study Together",
+        beProductive: "Be more productive with friends!",
+        friendsActivity: "Friends Activity", studying: "Studying", onBreak: "On Break",
+        groupGoals: "Group Goals", complete50: "Complete 50h this month",
+        chatRoom: "Chat Room",
+        navHome: "Home", navSyllabus: "Syllabus", navTimer: "Timer",
+        navNotes: "Notes", navCircle: "Circle",
+        settings: "Settings", theme: "Theme",
+        themeDark: "Dark", themeLight: "Light", themePremium: "Premium Dark", themeSystem: "System",
+        language: "Language", done: "Done"
+      },
+      bn: {
+        tagline: "পরিকল্পনা • ফোকাস • শেখা • বেড়ে ওঠা",
+        ultimate: "তোমার চূড়ান্ত", companion: "স্টাডি সঙ্গী",
+        getStarted: "শুরু করো", signIn: "সাইন ইন",
+        hello: "হ্যালো, লার্নার 👋", keepGoing: "চালিয়ে যাও! তুমি ভালোই করছো।",
+        overall: "মোট", progress: "অগ্রগতি", thisWeek: "এই সপ্তাহ", dayStreak: "দিনের স্ট্রিক",
+        activeSubjects: "সক্রিয় বিষয়", seeAll: "সব দেখো →",
+        math: "গণিত", physics: "পদার্থবিজ্ঞান", cs: "কম্পিউটার সায়েন্স",
+        quickTimer: "কুইক স্টার্ট টাইমার", syllabus: "সিলেবাস", complete: "সম্পূর্ণ",
+        addChapter: "অধ্যায় যোগ করো", proTip: "প্রো টিপ",
+        proTipText: "বড় টপিকগুলোকে ছোট ছোট কাজে ভাগ করো ভালো ফোকাসের জন্য!",
+        focusTimer: "ফোকাস টাইমার", focusTime: "ফোকাস টাইম",
+        spentToday: "আজকে কাটিয়েছো", milestones: "মাইলস্টোন", total: "মোট",
+        focusSounds: "ফোকাস সাউন্ড", startSession: "ফোকাস সেশন শুরু করো",
+        myNotes: "আমার নোটস", all: "সব",
+        studyCircle: "স্টাডি সার্কেল", studyTogether: "একসাথে পড়ো",
+        beProductive: "বন্ধুদের সাথে আরও প্রোডাক্টিভ হও!",
+        friendsActivity: "বন্ধুদের অ্যাকটিভিটি", studying: "পড়ছে", onBreak: "বিরতিতে",
+        groupGoals: "গ্রুপ গোল", complete50: "এই মাসে ৫০ ঘণ্টা পূরণ করো",
+        chatRoom: "চ্যাট রুম",
+        navHome: "হোম", navSyllabus: "সিলেবাস", navTimer: "টাইমার",
+        navNotes: "নোটস", navCircle: "সার্কেল",
+        settings: "Settings", theme: "থিম",
+        themeDark: "ডার্ক", themeLight: "লাইট", themePremium: "প্রিমিয়াম ডার্ক", themeSystem: "সিস্টেম",
+        language: "ভাষা", done: "হয়ে গেছে"
+      }
+    };
+
+    let currentLang = localStorage.getItem('studyflow_lang') || 'en';
+    let currentTheme = localStorage.getItem('studyflow_theme') || 'dark';
+
+    function applyTheme(theme) {
+      const root = document.documentElement;
+      if (theme === 'system') {
+        const dark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        root.setAttribute('data-theme', dark ? 'dark' : 'light');
+      } else {
+        root.setAttribute('data-theme', theme);
+      }
+      document.querySelectorAll('[data-theme]').forEach(el => {
+        el.classList.toggle('active', el.dataset.theme === theme);
+      });
+    }
+
+    function setTheme(theme) {
+      currentTheme = theme;
+      localStorage.setItem('studyflow_theme', theme);
+      applyTheme(theme);
+    }
+
+    function setLanguage(lang) {
+      currentLang = lang;
+      localStorage.setItem('studyflow_lang', lang);
+      document.documentElement.lang = lang;
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (translations[lang][key]) el.textContent = translations[lang][key];
+      });
+      document.querySelectorAll('[data-lang]').forEach(el => {
+        el.classList.toggle('active', el.dataset.lang === lang);
+      });
+    }
+
+    function showScreen(id) {
+      document.querySelectorAll('.screen').forEach(s => {
+        s.classList.remove('active');
+        s.style.display = 'none';
+      });
+      const target = document.getElementById(id);
+      target.style.display = id === 'timer' ? 'flex' : 'block';
+      target.classList.add('active');
+
+      const nav = document.getElementById('bottomNav');
+      if (id === 'welcome') {
+        nav.classList.add('hidden');
+      } else {
+        nav.classList.remove('hidden');
+        document.querySelectorAll('.nav-item').forEach(n => {
+          n.classList.toggle('active', n.dataset.screen === id);
+        });
+      }
+      document.getElementById('content').scrollTop = 0;
+    }
+
+    function openSettings() {
+      document.getElementById('settingsPanel').classList.add('open');
+    }
+    function closeSettings() {
+      document.getElementById('settingsPanel').classList.remove('open');
+    }
+
+    // Timer
+    let remaining = 25 * 60;
+    let isRunning = false;
+    let timerInterval = null;
+
+    function updateTimerDisplay() {
+      const m = String(Math.floor(remaining / 60)).padStart(2, '0');
+      const s = String(remaining % 60).padStart(2, '0');
+      document.getElementById('timerDisplay').textContent = m + ':' + s;
+      const total = 25 * 60;
+      const offset = 264 - (264 * (total - remaining) / total);
+      document.getElementById('timerRing').style.strokeDashoffset = offset;
+    }
+
+    function toggleTimer() {
+      const btn = document.getElementById('timerBtn');
+      if (isRunning) {
+        clearInterval(timerInterval);
+        isRunning = false;
+        btn.textContent = '▶';
+      } else {
+        isRunning = true;
+        btn.textContent = '⏸';
+        timerInterval = setInterval(() => {
+          if (remaining > 0) {
+            remaining--;
+            updateTimerDisplay();
+          } else {
+            clearInterval(timerInterval);
+            isRunning = false;
+            btn.textContent = '▶';
+            remaining = 25 * 60;
+            updateTimerDisplay();
+          }
+        }, 1000);
+      }
+    }
+
+    // Init
+    applyTheme(currentTheme);
+    setLanguage(currentLang);
+
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
+      if (currentTheme === 'system') applyTheme('system');
+    });
+  </script>
+</body>
+</html>
